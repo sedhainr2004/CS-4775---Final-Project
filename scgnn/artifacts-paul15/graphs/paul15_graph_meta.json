@@ -1,0 +1,10 @@
+{
+  "dataset": "paul15",
+  "n_cells": 2428,
+  "n_genes": 2000,
+  "adjacency_shape": [
+    4428,
+    4428
+  ],
+  "pca_components": 50
+}

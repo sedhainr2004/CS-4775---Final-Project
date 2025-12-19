@@ -1,0 +1,34 @@
+dataset:
+  name: pbmc3k
+  features_path: artifacts-pbmc/graphs/pbmc3k_features.npz
+  cell_gene_adj_path: artifacts-pbmc/graphs/pbmc3k_cell_gene_adj.npz
+  preprocessed_with_splits_path: artifacts-pbmc/splits/pbmc3k_preprocessed_with_splits.h5ad
+  splits_index_path: artifacts-pbmc/splits/pbmc3k_splits.json
+  pseudo_label_key: cell_type
+
+model:
+  hidden_dims: [256, 128]
+  latent_dim: 64
+  n_clusters: 10
+  dropout: 0.2
+  activation: relu
+  cluster_alpha: 1.0
+
+training:
+  output_dir: results/pbmc3k_scgnn_v2
+  seed: 42
+  device: cpu
+  epochs: 60
+  pretrain_epochs: 5
+  cluster_start_epoch: 6
+  eval_every: 5
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  kmeans_init: true
+  early_stopping_patience: 15
+  early_stopping_min_delta: 0.001
+
+losses:
+  reconstruction_weight: 1.0
+  clustering_weight: 0.2
+  reconstruction_type: mse

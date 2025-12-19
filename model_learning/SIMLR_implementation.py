@@ -33,6 +33,14 @@ class SIMLR:
         self.w_ = None      # Kernel Weights
         self.kernels_ = []  # Computed Kernels
         self.labels_ = None # Cluster labels
+        
+        # Tracking metrics for visualization
+        self.history_ = {
+            'w_history': [],      # Kernel weights per iteration
+            'S_changes': [],      # Frobenius norm of S change per iteration
+            'objective': [],      # Objective function value per iteration
+            'S_snapshots': {}     # Similarity matrix at key iterations
+        }
 
     def _cal_kernels(self, X):
         """
@@ -93,6 +101,12 @@ class SIMLR:
         cssv = np.cumsum(u)
         ind = np.arange(n_features) + 1
         cond = u - (cssv - 1) / ind > 0
+        
+        # Handle edge case where no elements satisfy condition
+        if not np.any(cond):
+            # Return uniform distribution
+            return np.ones(n_features) / n_features
+            
         rho = ind[cond][-1]
         theta = (cssv[rho - 1] - 1) / rho
         w = np.maximum(v - theta, 0)
@@ -114,13 +128,21 @@ class SIMLR:
         self.w_ = np.ones(num_kernels) / num_kernels
         # S: average of kernels
         self.S_ = np.mean(self.kernels_, axis=0)
-        # L: Top C eigenvectors of S
-        # We use S directly because maximizing tr(L' S L) is equivalent to minimizing tr(L'(I-S)L)
-        vals, vecs = eigsh(self.S_, k=self.C, which='LA')
+        # L: Top C eigenvectors of (I_N - S) as per paper
+        # This is the graph Laplacian formulation
+        I_N = np.eye(N)
+        L_matrix = I_N - self.S_
+        # Get smallest eigenvalues (which correspond to largest of I-L)
+        vals, vecs = eigsh(L_matrix, k=self.C, which='SM')
         self.L_ = vecs
         
         if self.verbose:
             print("Starting optimization loop...")
+        
+        # Store initial state
+        S_prev = self.S_.copy()
+        self.history_['w_history'].append(self.w_.copy())
+        self.history_['S_snapshots'][0] = self.S_.copy()
             
         for itr in range(self.n_iter):
             # --- Step 1: Update S (Similarity Matrix) ---
@@ -151,9 +173,11 @@ class SIMLR:
             self.S_ = (self.S_ + self.S_.T) / 2
             
             # --- Step 2: Update L (Latent Matrix) ---
-            # Maximize tr(L^T (S) L) -> Top C eigenvectors of S
-            # We solve standard eigenvalue problem
-            eig_vals, eig_vecs = eigsh(self.S_, k=self.C, which='LA')
+            # Minimize tr(L^T (I-S) L) -> Smallest C eigenvectors of (I-S)
+            # This is equivalent to maximizing tr(L^T S L)
+            I_N = np.eye(N)
+            L_matrix = I_N - self.S_
+            eig_vals, eig_vecs = eigsh(L_matrix, k=self.C, which='SM')
             self.L_ = eig_vecs
             
             # --- Step 3: Update w (Kernel Weights) ---
@@ -166,9 +190,27 @@ class SIMLR:
             for l in range(num_kernels):
                 kernel_trace[l] = np.sum(self.kernels_[l] * self.S_)
                 
-            # Closed form update
-            w_num = np.exp(kernel_trace / self.rho)
+            # Closed form update with numerical stability
+            kernel_trace_normalized = kernel_trace - np.max(kernel_trace)  # Prevent overflow
+            w_num = np.exp(kernel_trace_normalized / self.rho)
             self.w_ = w_num / np.sum(w_num)
+            
+            # Track metrics
+            S_change = np.linalg.norm(self.S_ - S_prev, 'fro')
+            self.history_['S_changes'].append(S_change)
+            self.history_['w_history'].append(self.w_.copy())
+            
+            # Calculate objective function value
+            obj_val = (self.beta * np.sum(self.S_ ** 2) - 
+                      np.sum(self.w_ * kernel_trace) + 
+                      self.rho * np.sum(self.w_ * np.log(self.w_ + 1e-10)))
+            self.history_['objective'].append(obj_val)
+            
+            # Store S at key iterations
+            if itr in [5, 10, 15, 20, 25, 29]:
+                self.history_['S_snapshots'][itr+1] = self.S_.copy()
+            
+            S_prev = self.S_.copy()
             
             if self.verbose and itr % 5 == 0:
                 print(f"Iteration {itr}/{self.n_iter} complete.")
@@ -183,6 +225,7 @@ class SIMLR:
     def _diffusion_enhancement(self, S, alpha=0.8, K=20):
         """
         Enhances similarity matrix using diffusion process.
+        Paper formula (Step 4): H_{t+1} = (1 - alpha) * P^T * H_t * P + alpha * S
         """
         N = S.shape[0]
         # Construct transition matrix P
@@ -198,51 +241,43 @@ class SIMLR:
         row_sums[row_sums == 0] = 1 # avoid div zero
         P = P / row_sums
         
-        # Diffusion iteration: H(t+1) = S * P^T + ... (Paper formula varies slightly by implementation)
-        # Using specific formula from SIMLR code/paper Eq 5:
-        # H_{t+1} = alpha * H_t * P + (1 - alpha) * I  (Typical PageRank style)
-        # But paper says: H(t+1) = S * P * S^T ... 
-        # Here we use the simplified accumulation often found in the actual SIMLR code:
-        # H = S; iterate H = alpha * H * P + (1-alpha) * S
-        
+        # Apply paper's diffusion formula: H_{t+1} = (1 - alpha) * P^T * H_t * P + alpha * S
         H = S.copy()
         # Small number of diffusion steps
         for _ in range(5):
-            H = alpha * np.dot(H, P) + (1 - alpha) * S
+            H = (1 - alpha) * np.dot(P.T, np.dot(H, P)) + alpha * S
             
         return H
 
     def fit_transform(self, X, embedding_dim=2):
         """
         Runs fit and then performs dimensionality reduction.
+        Paper uses modified t-SNE with similarity S directly as P_ij.
+        We approximate by converting S to distance and using precomputed metric.
         Returns:
             embedding: N x 2 (or 3) matrix for visualization.
         """
         self.fit(X)
         
-        # SIMLR uses a modified t-SNE that takes the learned Similarity S directly.
-        # We can approximate this by using sklearn TSNE with metric='precomputed'.
-        # However, TSNE expects distance, not similarity.
-        # We convert Similarity to Distance: D = 1 - S (or similar transform)
-        # Note: Standard SIMLR code modifies the t-SNE objective to use P=S directly.
-        # Here we use the 'precomputed' distance trick.
+        # Paper's approach: Use learned similarity S directly in t-SNE
+        # Standard t-SNE computes P_ij from Gaussian kernel on distances
+        # SIMLR's modification: Use S as P_ij directly
         
-        # Normalize S to be stochastic (like P matrix in t-SNE)
-        S_norm = self.S_ / np.sum(self.S_)
+        # Since sklearn's t-SNE doesn't support direct similarity input,
+        # we convert similarity to distance: d_ij = sqrt(2(1 - S_ij))
+        # This preserves the similarity structure while creating a valid metric
         
-        # Convert to a distance-like matrix for sklearn input
-        # Standard t-SNE computes P from distances. We already have P (S_norm).
-        # To strictly use sklearn, we need to bypass the P computation, which is hard.
-        # ALTERNATIVE: Use the Latent Matrix L for projection?
-        # The paper says: "For visualization... project the data... 
-        # to which we apply k-means... resulting in an N x B latent matrix Z"
+        # Ensure S is symmetric and normalized
+        S_sym = (self.S_ + self.S_.T) / 2
+        # Convert similarity to distance
+        # Use: d_ij = sqrt(max(0, 2(1 - S_ij)))
+        distances = np.sqrt(np.maximum(0, 2 * (1 - S_sym)))
         
-        # Visualization typically uses the S matrix into t-SNE. 
-        # For this implementation, we will project the Latent Matrix L using t-SNE
-        # which captures the block structure well.
+        # Apply t-SNE with precomputed distances
+        tsne = TSNE(n_components=embedding_dim, metric='precomputed', init='random', 
+                   perplexity=min(30, (len(S_sym) - 1) // 3))
+        embedding = tsne.fit_transform(distances)
         
-        tsne = TSNE(n_components=embedding_dim, metric='cosine', init='random')
-        embedding = tsne.fit_transform(self.L_)
         return embedding
 
     def predict(self, X=None):

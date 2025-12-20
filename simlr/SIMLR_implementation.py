@@ -11,10 +11,10 @@ class SIMLR:
     def __init__(self, n_clusters, beta=0.8, gamma=1.0, rho=1.0, n_iterations=30, logging=True):
         """
         Args:
-            n_clusters (C): Number of desired clusters (rank constraint).
-            beta: Regularization parameter for ||S||^2 (frob norm).
-            gamma: Regularization parameter for trace(L' (I-S) L).
-            rho: Regularization parameter for w log w (kernel weights entropy).
+            n_clusters (C): Number of desired clusters.
+            beta: Regularization parameter for ||S||^2.
+            gamma: Regularization parameter for trace(L^T (I-S) L).
+            rho: Regularization parameter for w log w.
             n_iterations: Number of optimization iterations.
         """
         self.C = n_clusters

@@ -32,7 +32,7 @@ def visualize_simlr_results(dataset_path, dataset_name, output_prefix):
     
     # Run SIMLR
     print("Fitting SIMLR...")
-    simlr = SIMLR(n_clusters=n_clusters, n_iterations=30, verbose=False)
+    simlr = SIMLR(n_clusters=n_clusters, n_iterations=30, logging=False)
     embedding = simlr.fit_transform(X, embedding_dim=2)
     y_pred = simlr.predict()
     
@@ -126,7 +126,7 @@ def visualize_simlr_results(dataset_path, dataset_name, output_prefix):
     return ari, nmi
 
 
-def create_comparison_plot(results_dict, output_file='model_learning/comparison_plot.png'):
+def create_comparison_plot(results_dict, output_file='simlr/comparison_plot.png'):
     """
     Create a comparison plot across datasets.
     """
@@ -177,7 +177,7 @@ def create_comparison_plot(results_dict, output_file='model_learning/comparison_
 
 if __name__ == "__main__":
     import os
-    os.makedirs('model_learning/results', exist_ok=True)
+    os.makedirs('simlr/results', exist_ok=True)
     
     results = {}
     
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     ari, nmi = visualize_simlr_results(
         "data/pbmc3k.h5ad", 
         "PBMC 3k",
-        "model_learning/results/pbmc3k"
+        "simlr/results/pbmc3k"
     )
     results['PBMC 3k'] = {'ARI': ari, 'NMI': nmi}
     
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     ari, nmi = visualize_simlr_results(
         "data/paul15.h5ad", 
         "Paul15",
-        "model_learning/results/paul15"
+        "simlr/results/paul15"
     )
     results['Paul15'] = {'ARI': ari, 'NMI': nmi}
     

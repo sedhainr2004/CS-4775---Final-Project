@@ -1,9 +1,8 @@
 import numpy as np
-from scipy.spatial.distance import pdist, squareform, cdist
+from scipy.spatial.distance import pdist, squareform
 from scipy.sparse.linalg import eigsh
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
-import warnings
 
 class SIMLR:
     """
@@ -25,10 +24,10 @@ class SIMLR:
         self.n_iter = n_iterations
         self.logging = logging
         
-        self.S_ = None      # Learned Similarity Matrix
-        self.L_ = None      # Latent Matrix
-        self.w_ = None      # Kernel Weights
-        self.kernels = []  # Computed Kernels
+        self.S_ = None 
+        self.L_ = None 
+        self.w_ = None   
+        self.kernels = []  
         self.labels_ = None # Cluster labels
 
         self.history_ = {
@@ -40,70 +39,74 @@ class SIMLR:
 
     def _cal_kernels(self, X):
         """
-        Constructs multiple Gaussian kernels based on Euclidean distance.
-        Parameters: Sigma (1.0 to 2.0) and K neighbors (10 to 30).
+        Constructs multiple Gaussian kernels based on Euclidean distances
         """
-        N = X.shape[0]
-        # Calculate full pairwise euclidean distances
-        # Note: For very large N, approximate NN should be used (e.g., Annoy) as per paper.
-        # Here we implement the exact version for standard usage.
+        # For very large N, approximate NN should be used
         dist_matrix = squareform(pdist(X, metric='euclidean'))
         dist_sq = dist_matrix ** 2
         
         kernels = []
-        
         k_range = range(10, 32, 2) 
         sigma_range = [1.0, 1.25, 1.5, 1.75, 2.0]
-        
+
+        # Sort distances to find knn distance
+        sorted_dist = np.sort(dist_matrix, axis=1)
+
         for k in k_range:
-            # Determine epsilon_ij scale based on k-th neighbor
-            # Sort distances to find k-th neighbor distance
-            sorted_dist = np.sort(dist_matrix, axis=1)
-            # Avoid self-distance (index 0)
-            k_dist = sorted_dist[:, k]
-            
-            # Average scale approximation for variance
-            # sigma_ij = (scale_i + scale_j) / 2
-            # Here we simplify to a global scale per k for vectorization or 
-            # use the broadcasting approach. The paper implies specific mu_i.
-            mu = k_dist.reshape(-1, 1) # N x 1
+            mu = np.mean(sorted_dist[:, 1:k+1], axis=1, keepdims=True)
             mu_ij = (mu + mu.T) / 2
             
             for sigma in sigma_range:
-                # Kernel entry: exp( - ||x_i - x_j||^2 / (2 * (sigma * mu_ij)^2) )
-                # Note: Paper Eq(3) uses simple variance term epsilon_ij
-                denom = (sigma * mu_ij) ** 2
-                # Avoid division by zero
-                denom[denom == 0] = 1e-10
+                epsilon_ij = sigma * mu_ij
+                epsilon_ij = np.maximum(epsilon_ij, 1e-10)  
                 
-                K = np.exp(-dist_sq / (2 * denom))
-                
-                # Zero out diagonal
+                coeff = 1.0 / (epsilon_ij * np.sqrt(2 * np.pi))
+                K = coeff * np.exp(-dist_sq / (2 * epsilon_ij ** 2))
+
                 np.fill_diagonal(K, 0)
                 kernels.append(K)
                 
         return np.array(kernels)
 
-    def _project_simplex(self, v):
+    def _project_simplex(self, v_i):
         """
-        Solves the projection problem: min ||x - v||^2 s.t. sum(x)=1, x>=0.
-        Used to update rows of S.
+        Simplex projection using centering transformation + Newton's method.
         """
-        n_features = v.shape[0]
-        u = np.sort(v)[::-1]
-        cssv = np.cumsum(u)
-        ind = np.arange(n_features) + 1
-        cond = u - (cssv - 1) / ind > 0
+        N = len(v_i)
+
+        u_i = v_i - np.mean(v_i) + (1.0 / N)
         
-        # Handle edge case where no elements satisfy condition
-        if not np.any(cond):
-            # Return uniform distribution
-            return np.ones(n_features) / n_features
+        sigma = 0.0
+        for _ in range(50):
+            diff = sigma - u_i
+            positive_parts = np.maximum(diff, 0)
             
-        rho = ind[cond][-1]
-        theta = (cssv[rho - 1] - 1) / rho
-        w = np.maximum(v - theta, 0)
-        return w
+            f_val = np.sum(positive_parts) / (N - 1) - sigma
+            f_prime = np.sum(diff > 0) / (N - 1) - 1.0
+            
+            if abs(f_prime) < 1e-12:
+                break
+            
+            sigma_new = sigma - f_val / f_prime
+            if abs(sigma_new - sigma) < 1e-10:
+                break
+            sigma = sigma_new
+        
+        return np.maximum(u_i - sigma, 0)
+
+
+    def _update_S(self, K_sum, L_dist, N):
+        """
+        Full S update step.
+        """
+        V = (K_sum + self.gamma * L_dist) / (2 * self.beta)
+        
+        S_new = np.zeros((N, N))
+        for i in range(N):
+            S_new[i, :] = self._project_simplex(V[i, :])
+        
+        return (S_new + S_new.T) / 2
+    
 
     def fit(self, X):
         """
@@ -135,12 +138,7 @@ class SIMLR:
             # Step 1: Update S
             K_sum = np.tensordot(self.w_, self.kernels, axes=(0, 0)) # N x N
             L_dist = np.dot(self.L_, self.L_.T) 
-            target = (K_sum + self.gamma * L_dist) / (2 * self.beta)
-            
-            for i in range(N):
-                self.S_[i, :] = self._project_simplex(target[i, :])
-            
-            self.S_ = (self.S_ + self.S_.T) / 2
+            self.S_ = self._update_S(K_sum, L_dist, N)
             
             # Step 2: Update L
             I_N = np.eye(N)
@@ -186,25 +184,20 @@ class SIMLR:
     def _diffusion_enhancement(self, S, alpha=0.8, K=20):
         """
         Enhances similarity matrix using diffusion process.
-        Paper formula (Step 4): H_{t+1} = (1 - alpha) * P^T * H_t * P + alpha * S
+        H_{t+1} = (1 - alpha) * P^T * H_t * P + alpha * S
         """
         N = S.shape[0]
-        # Construct transition matrix P
-        # Only keep top K neighbors for sparsity/noise reduction
+
         P = np.zeros_like(S)
         for i in range(N):
-            # Indices of top K neighbors
             top_k_idx = np.argsort(S[i, :])[-K:]
             P[i, top_k_idx] = S[i, top_k_idx]
         
-        # Normalize rows to sum to 1
         row_sums = P.sum(axis=1, keepdims=True)
-        row_sums[row_sums == 0] = 1 # avoid div zero
+        row_sums[row_sums == 0] = 1
         P = P / row_sums
         
-        # Apply paper's diffusion formula: H_{t+1} = (1 - alpha) * P^T * H_t * P + alpha * S
         H = S.copy()
-        # Small number of diffusion steps
         for _ in range(5):
             H = (1 - alpha) * np.dot(P.T, np.dot(H, P)) + alpha * S
             
@@ -212,23 +205,15 @@ class SIMLR:
 
     def fit_transform(self, X, embedding_dim=2):
         """
-        Runs fit and then performs dimensionality reduction.
-        Paper uses modified t-SNE with similarity S directly as P_ij.
-        We approximate by converting S to distance and using precomputed metric.
+        Runs fit and then performs dimensionality reduction with t-SNE with similarity S directly as P_ij.
         Returns:
             embedding: N x 2 (or 3) matrix for visualization.
         """
         self.fit(X)
         
-        # Use learned similarity S directly in t-SNE
-        # Standard t-SNE computes P_ij from Gaussian kernel on distances
-        # SIMLR's modification: Use S as P_ij directly
-        
         S_sym = (self.S_ + self.S_.T) / 2
-        # Convert similarity to distance
         distances = np.sqrt(np.maximum(0, 2 * (1 - S_sym)))
         
-        # Apply t-SNE with precomputed distances
         tsne = TSNE(n_components=embedding_dim, metric='precomputed', init='random', 
                    perplexity=min(30, (len(S_sym) - 1) // 3))
         embedding = tsne.fit_transform(distances)
@@ -242,26 +227,50 @@ class SIMLR:
         if self.L_ is None:
             raise ValueError("Model not fitted. Run fit() first.")
             
-        # "For clustering with k-means, we use... N x B latent matrix Z (L in code)"
         kmeans = KMeans(n_clusters=self.C, n_init=10, random_state=42)
         self.labels_ = kmeans.fit_predict(self.L_)
         return self.labels_
 
-# --- Example Usage ---
+
+# Example for synthetic dataset
 if __name__ == "__main__":
-    # Create synthetic single-cell data (e.g., 3 blobs)
+    import matplotlib.pyplot as plt
     from sklearn.datasets import make_blobs
-    X_syn, y_syn = make_blobs(n_samples=200, n_features=50, centers=3, random_state=42)
-    
-    # Initialize SIMLR
-    # C=3 clusters
-    simlr = SIMLR(n_clusters=3, verbose=True)
-    
-    # Fit and get visualization embedding
+    from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
+
+    X_syn, y_syn = make_blobs(n_samples=200, n_features=50, centers=3,
+                              cluster_std=3.0, center_box=(-2, 2), random_state=42)
+
+    simlr = SIMLR(n_clusters=3, logging=True)
+
     embedding = simlr.fit_transform(X_syn)
-    
-    # Get clusters
     clusters = simlr.predict()
-    
-    print("Computed Clusters:", clusters[:10], "...")
-    print("Embedding Shape:", embedding.shape)
+
+    ari = adjusted_rand_score(y_syn, clusters)
+    nmi = normalized_mutual_info_score(y_syn, clusters)
+    print(f"\nARI: {ari:.4f}, NMI: {nmi:.4f}")
+
+    # Visualize embedding with predicted clusters vs actual labels
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+    # Plot 1: Predicted clusters
+    scatter1 = axes[0].scatter(embedding[:, 0], embedding[:, 1],
+                              c=clusters, cmap='viridis', s=50, alpha=0.7, edgecolors='k', linewidth=0.5)
+    axes[0].set_title(f'SIMLR Predicted Clusters\nARI: {ari:.4f}', fontsize=12, fontweight='bold')
+    axes[0].set_xlabel('t-SNE Component 1', fontsize=10)
+    axes[0].set_ylabel('t-SNE Component 2', fontsize=10)
+    plt.colorbar(scatter1, ax=axes[0], label='Predicted Cluster')
+    axes[0].grid(True, alpha=0.3)
+
+    # Plot 2: Actual labels
+    scatter2 = axes[1].scatter(embedding[:, 0], embedding[:, 1],
+                              c=y_syn, cmap='viridis', s=50, alpha=0.7, edgecolors='k', linewidth=0.5)
+    axes[1].set_title(f'Ground Truth Labels\nNMI: {nmi:.4f}', fontsize=12, fontweight='bold')
+    axes[1].set_xlabel('t-SNE Component 1', fontsize=10)
+    axes[1].set_ylabel('t-SNE Component 2', fontsize=10)
+    plt.colorbar(scatter2, ax=axes[1], label='True Label')
+    axes[1].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('simlr_embedding_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()

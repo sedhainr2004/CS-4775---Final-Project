@@ -26,10 +26,7 @@ sns.set_palette("husl")
 def create_process_visualizations(simlr, dataset_name, output_dir):
     """
     Figure Set 1: SIMLR Algorithm Process
-    Shows HOW SIMLR works (for Methods section)
     """
-    print(f"Creating process visualizations for {dataset_name}...")
-
     fig = plt.figure(figsize=(12, 5))
 
     # 1. Objective Function Convergence
@@ -55,16 +52,13 @@ def create_process_visualizations(simlr, dataset_name, output_dir):
     plt.tight_layout()
     output_file = os.path.join(output_dir, f'{dataset_name}_process.png')
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"  Saved: {output_file}")
     plt.close()
 
 
 def create_results_visualizations(X, simlr, y_true, y_pred, embedding, dataset_name, output_dir):
     """
     Figure Set 2: Results and Performance
-    Shows WHAT SIMLR achieved (for Results section)
     """
-    print(f"Creating results visualizations for {dataset_name}...")
 
     # Calculate metrics
     ari = adjusted_rand_score(y_true, y_pred)
@@ -109,10 +103,10 @@ def create_results_visualizations(X, simlr, y_true, y_pred, embedding, dataset_n
     Rho (ρ):            {simlr.rho}
     """)
 
-    fig = plt.figure(figsize=(18, 5))
+    fig = plt.figure(figsize=(12, 5))
 
     # 1. t-SNE: True Labels
-    ax1 = plt.subplot(1, 3, 1)
+    ax1 = plt.subplot(1, 2, 1)
     scatter1 = ax1.scatter(embedding[:, 0], embedding[:, 1], c=y_true,
                           cmap='tab20', s=15, alpha=0.6, edgecolors='none')
     ax1.set_title(f'True Cell Types (n={len(np.unique(y_true))})',
@@ -122,7 +116,7 @@ def create_results_visualizations(X, simlr, y_true, y_pred, embedding, dataset_n
     plt.colorbar(scatter1, ax=ax1, label='True Cluster')
 
     # 2. t-SNE: SIMLR Predictions
-    ax2 = plt.subplot(1, 3, 2)
+    ax2 = plt.subplot(1, 2, 2)
     scatter2 = ax2.scatter(embedding[:, 0], embedding[:, 1], c=y_pred,
                           cmap='tab20', s=15, alpha=0.6, edgecolors='none')
     ax2.set_title(f'SIMLR Predictions (ARI={ari:.3f})',
@@ -131,28 +125,9 @@ def create_results_visualizations(X, simlr, y_true, y_pred, embedding, dataset_n
     ax2.set_ylabel('t-SNE 2', fontsize=11)
     plt.colorbar(scatter2, ax=ax2, label='Predicted Cluster')
 
-    # 3. Performance Metrics
-    ax3 = plt.subplot(1, 3, 3)
-    metrics_names = ['ARI', 'NMI', 'Silhouette']
-    metrics_vals = [ari, nmi, silhouette]
-    colors = ['#2ecc71' if v > 0.5 else '#e74c3c' if v > 0.3 else '#95a5a6'
-             for v in metrics_vals]
-    bars = ax3.bar(metrics_names, metrics_vals, color=colors, alpha=0.7, edgecolor='black')
-    ax3.set_ylim([0, 1])
-    ax3.set_ylabel('Score', fontsize=11)
-    ax3.set_title('Clustering Performance Metrics', fontsize=12, fontweight='bold')
-    ax3.axhline(y=0.5, color='gray', linestyle='--', linewidth=1, alpha=0.5)
-    ax3.grid(True, alpha=0.3, axis='y')
-
-    for bar, val in zip(bars, metrics_vals):
-        height = bar.get_height()
-        ax3.text(bar.get_x() + bar.get_width()/2., height + 0.02,
-                f'{val:.3f}', ha='center', va='bottom', fontweight='bold', fontsize=10)
-
     plt.tight_layout()
     output_file = os.path.join(output_dir, f'{dataset_name}_results.png')
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"  Saved: {output_file}")
     plt.close()
 
     return ari, nmi, silhouette
@@ -178,9 +153,15 @@ def process_dataset(dataset_path, dataset_name, output_dir):
     y_true = adata.obs['cell_type'].values.astype(int)
     n_clusters = len(np.unique(y_true))
     
-    # Run SIMLR
-    print("Running SIMLR...")
-    simlr = SIMLR(n_clusters=n_clusters, n_iterations=30, logging=False)
+    best_beta = 0.8
+    best_gamma = 0.8
+    best_rho = 0.5
+    if dataset_name.lower() == "paul15":
+        best_beta = 1.0
+        best_gamma = 1.0
+        best_rho = 1.0
+
+    simlr = SIMLR(n_clusters=n_clusters, n_iterations=30, beta=best_beta, gamma=best_gamma, rho=best_rho, logging=False)
     embedding = simlr.fit_transform(X, embedding_dim=2)
     y_pred = simlr.predict()
     
@@ -196,7 +177,6 @@ def create_comparison_figure(results, output_dir):
     """
     Create overall comparison figure
     """
-    print("\nCreating comparison figure...")
     
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     
@@ -238,7 +218,6 @@ def create_comparison_figure(results, output_dir):
     plt.tight_layout()
     output_file = os.path.join(output_dir, 'overall_comparison.png')
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"Saved: {output_file}")
     plt.close()
 
 
@@ -259,12 +238,4 @@ if __name__ == "__main__":
     # Create comparison
     create_comparison_figure(results, output_dir)
     
-    print("\n" + "="*60)
-    print("ALL FIGURES GENERATED SUCCESSFULLY!")
-    print("="*60)
     print(f"\nFigures saved in: {output_dir}/")
-    print("\nGenerated files:")
-    for dataset in ['pbmc3k', 'paul15']:
-        print(f"  - {dataset}_process.png (SIMLR algorithm process)")
-        print(f"  - {dataset}_results.png (clustering results)")
-    print(f"  - overall_comparison.png (dataset comparison)")

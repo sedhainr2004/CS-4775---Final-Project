@@ -1,0 +1,30 @@
+# Minimal config for DESC reimplementation
+dataset_path: data/paul15.h5ad
+output_dir: outputs/paul15_desc
+random_seed: 42
+
+# Preprocessing
+min_genes: 200
+min_cells: 3
+max_mito_pct: 0.2 # 0.20 => 20%
+target_sum: 1e4 # library size norm
+n_hvgs: 2000
+
+# Model
+latent_dim: 32
+hidden_dims: [1024, 256]
+dropout: 0.1
+
+# Training
+batch_size: 1024
+lr: 0.001
+epochs_warmup: 60
+epochs_refine: 100
+refresh_target_every: 5
+lambda_kl: 1.0
+beta_batch: 0.5
+n_clusters: 10 # set 0 to auto-infer with a small elbow [5..15]
+
+# UMAP
+umap_n_neighbors: 15
+umap_min_dist: 0.3

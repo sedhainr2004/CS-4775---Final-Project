@@ -7,11 +7,9 @@ import warnings
 
 class SIMLR:
     """
-    Single-cell Interpretation via Multi-kernel Learning (SIMLR).
-    
-    Reimplementation based on Wang et al. (2017) Nature Methods.
+    Reimplementation based on Wang et al. (2017)
     """
-    def __init__(self, n_clusters, beta=0.8, gamma=1.0, rho=1.0, n_iterations=30, verbose=True):
+    def __init__(self, n_clusters, beta=0.8, gamma=1.0, rho=1.0, n_iterations=30, logging=True):
         """
         Args:
             n_clusters (C): Number of desired clusters (rank constraint).
@@ -25,16 +23,14 @@ class SIMLR:
         self.gamma = gamma
         self.rho = rho
         self.n_iter = n_iterations
-        self.verbose = verbose
+        self.logging = logging
         
-        # Model artifacts
         self.S_ = None      # Learned Similarity Matrix
         self.L_ = None      # Latent Matrix
         self.w_ = None      # Kernel Weights
-        self.kernels_ = []  # Computed Kernels
+        self.kernels = []  # Computed Kernels
         self.labels_ = None # Cluster labels
-        
-        # Tracking metrics for visualization
+
         self.history_ = {
             'w_history': [],      # Kernel weights per iteration
             'S_changes': [],      # Frobenius norm of S change per iteration
@@ -56,10 +52,7 @@ class SIMLR:
         
         kernels = []
         
-        # Heuristic parameters from the Methods section
-        # k in {10, 12, ..., 30}
         k_range = range(10, 32, 2) 
-        # sigma in {1.0, 1.25, ..., 2.0}
         sigma_range = [1.0, 1.25, 1.5, 1.75, 2.0]
         
         for k in k_range:
@@ -114,84 +107,54 @@ class SIMLR:
 
     def fit(self, X):
         """
-        Main optimization loop.
+        Main optimization loop
         """
         N = X.shape[0]
         
-        if self.verbose:
-            print(f"Computing kernels for {N} cells...")
-        self.kernels_ = self._cal_kernels(X)
-        num_kernels = self.kernels_.shape[0]
+        self.kernels = self._cal_kernels(X)
+        num_kernels = self.kernels.shape[0]
         
-        # 0. Initialization
+        # Step 0: Initialization
         # w: uniform weights
         self.w_ = np.ones(num_kernels) / num_kernels
         # S: average of kernels
-        self.S_ = np.mean(self.kernels_, axis=0)
-        # L: Top C eigenvectors of (I_N - S) as per paper
-        # This is the graph Laplacian formulation
+        self.S_ = np.mean(self.kernels, axis=0)
+        # L: Top C eigenvectors of (I_N - S)
         I_N = np.eye(N)
         L_matrix = I_N - self.S_
-        # Get smallest eigenvalues (which correspond to largest of I-L)
+
         vals, vecs = eigsh(L_matrix, k=self.C, which='SM')
         self.L_ = vecs
         
-        if self.verbose:
-            print("Starting optimization loop...")
-        
-        # Store initial state
+        # initial state
         S_prev = self.S_.copy()
         self.history_['w_history'].append(self.w_.copy())
         self.history_['S_snapshots'][0] = self.S_.copy()
             
         for itr in range(self.n_iter):
-            # --- Step 1: Update S (Similarity Matrix) ---
-            # Problem: min_S \sum -w_l K_l . S + beta ||S||^2 + gamma tr(L' (I-S) L)
-            # Rearranging w.r.t S_ij:
-            # min \sum (beta * S_ij^2 - ( \sum w_l K_l(i,j) + gamma * (L_i . L_j) ) * S_ij )
-            # This is a projection of a vector onto the simplex.
-            # The 'vector' to project is: ( \sum w_l K_l + gamma * L L^T ) / (2 * beta)
-            
-            # Weighted kernel sum
-            K_sum = np.tensordot(self.w_, self.kernels_, axes=(0, 0)) # N x N
-            
-            # L term
-            L_dist = np.dot(self.L_, self.L_.T) # N x N
-            
-            # Target for projection
-            # Factor 2*beta comes from derivative of beta*S^2 -> 2*beta*S
+            # Step 1: Update S
+            K_sum = np.tensordot(self.w_, self.kernels, axes=(0, 0)) # N x N
+            L_dist = np.dot(self.L_, self.L_.T) 
             target = (K_sum + self.gamma * L_dist) / (2 * self.beta)
             
-            # Apply constraints: S_ij >= 0, sum_j S_ij = 1
-            # We treat diagonal as 0 or ignore it in the optimization usually, 
-            # but formally SIMLR optimizes S_ij.
-            # Row-wise simplex projection
             for i in range(N):
                 self.S_[i, :] = self._project_simplex(target[i, :])
             
-            # Symmetrize S (heuristic to maintain stability, though optimization should favor symmetry)
             self.S_ = (self.S_ + self.S_.T) / 2
             
-            # --- Step 2: Update L (Latent Matrix) ---
-            # Minimize tr(L^T (I-S) L) -> Smallest C eigenvectors of (I-S)
-            # This is equivalent to maximizing tr(L^T S L)
+            # Step 2: Update L
             I_N = np.eye(N)
             L_matrix = I_N - self.S_
             eig_vals, eig_vecs = eigsh(L_matrix, k=self.C, which='SM')
             self.L_ = eig_vecs
             
-            # --- Step 3: Update w (Kernel Weights) ---
-            # Problem: min_w - \sum w_l <K_l, S> + rho \sum w_l log w_l
-            # Solution: w_l \propto exp( <K_l, S> / rho )
-            
-            # Compute inner products <K_l, S>
-            # Frobenius inner product = sum(K_l * S) elementwise
+            # Step 3: Update w
             kernel_trace = np.zeros(num_kernels)
             for l in range(num_kernels):
-                kernel_trace[l] = np.sum(self.kernels_[l] * self.S_)
+                kernel_trace[l] = np.sum(self.kernels[l] * self.S_)
                 
-            # Closed form update with numerical stability
-            kernel_trace_normalized = kernel_trace - np.max(kernel_trace)  # Prevent overflow
+            # Closed form update
+            kernel_trace_normalized = kernel_trace - np.max(kernel_trace)
             w_num = np.exp(kernel_trace_normalized / self.rho)
             self.w_ = w_num / np.sum(w_num)
             
@@ -206,18 +169,16 @@ class SIMLR:
                       self.rho * np.sum(self.w_ * np.log(self.w_ + 1e-10)))
             self.history_['objective'].append(obj_val)
             
-            # Store S at key iterations
+            # Store S
             if itr in [5, 10, 15, 20, 25, 29]:
                 self.history_['S_snapshots'][itr+1] = self.S_.copy()
             
             S_prev = self.S_.copy()
             
-            if self.verbose and itr % 5 == 0:
+            if self.logging and itr % 5 == 0:
                 print(f"Iteration {itr}/{self.n_iter} complete.")
                 
-        # --- Step 4: Diffusion Enhancement (Optional but recommended in paper) ---
-        # "We apply a diffusion-based step to enhance the similarity matrix S"
-        # Eq (4) and (5) in Methods
+        # Step 4: Diffusion Enhancement 
         self.S_ = self._diffusion_enhancement(self.S_)
         
         return self
@@ -259,18 +220,12 @@ class SIMLR:
         """
         self.fit(X)
         
-        # Paper's approach: Use learned similarity S directly in t-SNE
+        # Use learned similarity S directly in t-SNE
         # Standard t-SNE computes P_ij from Gaussian kernel on distances
         # SIMLR's modification: Use S as P_ij directly
         
-        # Since sklearn's t-SNE doesn't support direct similarity input,
-        # we convert similarity to distance: d_ij = sqrt(2(1 - S_ij))
-        # This preserves the similarity structure while creating a valid metric
-        
-        # Ensure S is symmetric and normalized
         S_sym = (self.S_ + self.S_.T) / 2
         # Convert similarity to distance
-        # Use: d_ij = sqrt(max(0, 2(1 - S_ij)))
         distances = np.sqrt(np.maximum(0, 2 * (1 - S_sym)))
         
         # Apply t-SNE with precomputed distances

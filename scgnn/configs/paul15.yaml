@@ -1,6 +1,6 @@
 dataset:
   name: paul15
-  raw_path: data/paul15/paul15.h5
+  raw_path: ../data/paul15/paul15.h5
   raw_format: paul15_h5
   batch_obs_key: batch
   pseudo_label_obs_key: pseudo_label
@@ -39,6 +39,7 @@ graph:
     n_neighbors: 15
     metric: euclidean
     use_rep: X_pca
+    method: gauss
 splits:
   train_fraction: 0.7
   val_fraction: 0.15

@@ -46,12 +46,14 @@ def pca_and_neighbors(adata: sc.AnnData, graph_cfg: Dict) -> None:
     )
 
     neigh_cfg = graph_cfg.get("neighbors", {})
-    logging.info("Building kNN graph (k=%s)", neigh_cfg.get("n_neighbors", 15))
+    method = neigh_cfg.get("method", "gauss")
+    logging.info("Building kNN graph (k=%s, method=%s)", neigh_cfg.get("n_neighbors", 15), method)
     sc.pp.neighbors(
         adata,
         n_neighbors=neigh_cfg.get("n_neighbors", 15),
         n_pcs=n_comps,
         metric=neigh_cfg.get("metric", "euclidean"),
+        method=method,
     )
 
 

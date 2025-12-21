@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score
 
-from data.scgnn_dataset import load_scgnn_data
+from scgnn_dataset import load_scgnn_data
 from pipeline_utils import load_config, resolve_path
 
 

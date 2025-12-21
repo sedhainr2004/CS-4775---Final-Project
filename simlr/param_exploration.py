@@ -1,13 +1,8 @@
-"""
-Hyperparameter Exploration for SIMLR
-Tests different values of beta (=gamma) and rho to find optimal configuration
-"""
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.datasets import make_blobs
+# from sklearn.datasets import make_blobs
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score
 from itertools import product
 import scanpy as sc

@@ -1,10 +1,3 @@
-"""
-Comprehensive SIMLR Visualization Suite
-Generates all figures needed for presentation:
-1. SIMLR Process Visualizations (Methods section)
-2. Results Visualizations (Results section)
-"""
-
 import scanpy as sc
 import numpy as np
 import pandas as pd

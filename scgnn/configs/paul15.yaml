@@ -1,0 +1,47 @@
+dataset:
+  name: paul15
+  raw_path: data/paul15/paul15.h5
+  raw_format: paul15_h5
+  batch_obs_key: batch
+  pseudo_label_obs_key: pseudo_label
+  raw_cluster_obs_key: paul15_cluster
+artifacts:
+  processed_path: artifacts-paul15/processed/paul15_preprocessed.h5ad
+  splits_h5ad_path: artifacts-paul15/splits/paul15_preprocessed_with_splits.h5ad
+  splits_index_path: artifacts-paul15/splits/paul15_splits.json
+  graphs:
+    cell_gene_adj_path: artifacts-paul15/graphs/paul15_cell_gene_adj.npz
+    full_adj_path: artifacts-paul15/graphs/paul15_full_adj.npz
+    features_path: artifacts-paul15/graphs/paul15_features.npz
+    meta_path: artifacts-paul15/graphs/paul15_graph_meta.json
+preprocessing:
+  qc:
+    min_counts_per_cell: 800
+    max_counts_per_cell: 20000
+    min_genes_per_cell: 500
+    max_genes_per_cell: 4000
+  normalize:
+    target_sum: 10000
+  log1p: true
+  hvg:
+    n_top_genes: 2000
+    flavor: seurat
+    batch_key: batch
+    selection: union
+graph:
+  scale:
+    enabled: true
+    max_value: 10.0
+  pca:
+    n_comps: 50
+    random_state: 42
+  neighbors:
+    n_neighbors: 15
+    metric: euclidean
+    use_rep: X_pca
+splits:
+  train_fraction: 0.7
+  val_fraction: 0.15
+  test_fraction: 0.15
+  stratify_key: pseudo_label
+  random_state: 42

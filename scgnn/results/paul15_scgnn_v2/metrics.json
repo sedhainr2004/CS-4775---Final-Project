@@ -1,0 +1,290 @@
+{
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 227945568.0,
+      "recon_loss": 227945568.0,
+      "recon_loss_weighted": 227945568.0,
+      "cluster_loss": 0.0,
+      "cluster_loss_weighted": 0.0,
+      "cluster_entropy": 2.944438934326172,
+      "cluster_active": false
+    },
+    {
+      "epoch": 2,
+      "loss": 87597632.0,
+      "recon_loss": 87597632.0,
+      "recon_loss_weighted": 87597632.0,
+      "cluster_loss": 0.0,
+      "cluster_loss_weighted": 0.0,
+      "cluster_entropy": 2.944438934326172,
+      "cluster_active": false
+    },
+    {
+      "epoch": 3,
+      "loss": 50340788.0,
+      "recon_loss": 50340788.0,
+      "recon_loss_weighted": 50340788.0,
+      "cluster_loss": 0.0,
+      "cluster_loss_weighted": 0.0,
+      "cluster_entropy": 2.944438934326172,
+      "cluster_active": false
+    },
+    {
+      "epoch": 4,
+      "loss": 41974576.0,
+      "recon_loss": 41974576.0,
+      "recon_loss_weighted": 41974576.0,
+      "cluster_loss": 0.0,
+      "cluster_loss_weighted": 0.0,
+      "cluster_entropy": 2.944438934326172,
+      "cluster_active": false
+    },
+    {
+      "epoch": 5,
+      "loss": 37920844.0,
+      "recon_loss": 37920844.0,
+      "recon_loss_weighted": 37920844.0,
+      "cluster_loss": 0.0,
+      "cluster_loss_weighted": 0.0,
+      "cluster_entropy": 2.944438934326172,
+      "cluster_active": false,
+      "train": {
+        "silhouette": 0.20426012575626373,
+        "ari": 0.2467569784456868,
+        "nmi": 0.5034659478459236
+      },
+      "val": {
+        "silhouette": 0.21182316541671753,
+        "ari": 0.24912609315374598,
+        "nmi": 0.5329266317209513
+      },
+      "test": {
+        "silhouette": 0.1890595704317093,
+        "ari": 0.22281903197084363,
+        "nmi": 0.5159728308196283
+      }
+    },
+    {
+      "epoch": 6,
+      "loss": 32451068.0,
+      "recon_loss": 32451068.0,
+      "recon_loss_weighted": 32451068.0,
+      "cluster_loss": 0.12220427393913269,
+      "cluster_loss_weighted": 0.024440854787826538,
+      "cluster_entropy": 2.772885322570801,
+      "cluster_active": true
+    },
+    {
+      "epoch": 7,
+      "loss": 27995724.0,
+      "recon_loss": 27995724.0,
+      "recon_loss_weighted": 27995724.0,
+      "cluster_loss": 0.11137691885232925,
+      "cluster_loss_weighted": 0.02227538451552391,
+      "cluster_entropy": 2.789691209793091,
+      "cluster_active": true
+    },
+    {
+      "epoch": 8,
+      "loss": 23260464.0,
+      "recon_loss": 23260464.0,
+      "recon_loss_weighted": 23260464.0,
+      "cluster_loss": 0.08268518000841141,
+      "cluster_loss_weighted": 0.01653703674674034,
+      "cluster_entropy": 2.8328871726989746,
+      "cluster_active": true
+    },
+    {
+      "epoch": 9,
+      "loss": 20577166.0,
+      "recon_loss": 20577166.0,
+      "recon_loss_weighted": 20577166.0,
+      "cluster_loss": 0.05280402675271034,
+      "cluster_loss_weighted": 0.010560805909335613,
+      "cluster_entropy": 2.867314100265503,
+      "cluster_active": true
+    },
+    {
+      "epoch": 10,
+      "loss": 16966160.0,
+      "recon_loss": 16966160.0,
+      "recon_loss_weighted": 16966160.0,
+      "cluster_loss": 0.03182530775666237,
+      "cluster_loss_weighted": 0.006365061737596989,
+      "cluster_entropy": 2.883636713027954,
+      "cluster_active": true,
+      "train": {
+        "silhouette": -0.0023201582953333855,
+        "ari": 0.11392427296937839,
+        "nmi": 0.3183373292179272
+      },
+      "val": {
+        "silhouette": 0.0032625512685626745,
+        "ari": 0.10254338794799935,
+        "nmi": 0.35841148723323507
+      },
+      "test": {
+        "silhouette": 0.01126234233379364,
+        "ari": 0.10830441831610237,
+        "nmi": 0.33682125575462696
+      }
+    },
+    {
+      "epoch": 11,
+      "loss": 14243735.0,
+      "recon_loss": 14243735.0,
+      "recon_loss_weighted": 14243735.0,
+      "cluster_loss": 0.020534895360469818,
+      "cluster_loss_weighted": 0.004106979351490736,
+      "cluster_entropy": 2.8871583938598633,
+      "cluster_active": true
+    },
+    {
+      "epoch": 12,
+      "loss": 11955195.0,
+      "recon_loss": 11955195.0,
+      "recon_loss_weighted": 11955195.0,
+      "cluster_loss": 0.015419132076203823,
+      "cluster_loss_weighted": 0.003083826508373022,
+      "cluster_entropy": 2.884976863861084,
+      "cluster_active": true
+    },
+    {
+      "epoch": 13,
+      "loss": 11165610.0,
+      "recon_loss": 11165610.0,
+      "recon_loss_weighted": 11165610.0,
+      "cluster_loss": 0.014733051881194115,
+      "cluster_loss_weighted": 0.002946610329672694,
+      "cluster_entropy": 2.8819968700408936,
+      "cluster_active": true
+    },
+    {
+      "epoch": 14,
+      "loss": 10791058.0,
+      "recon_loss": 10791058.0,
+      "recon_loss_weighted": 10791058.0,
+      "cluster_loss": 0.013360266573727131,
+      "cluster_loss_weighted": 0.0026720534078776836,
+      "cluster_entropy": 2.8821418285369873,
+      "cluster_active": true
+    },
+    {
+      "epoch": 15,
+      "loss": 10205914.0,
+      "recon_loss": 10205914.0,
+      "recon_loss_weighted": 10205914.0,
+      "cluster_loss": 0.012773753143846989,
+      "cluster_loss_weighted": 0.002554750768467784,
+      "cluster_entropy": 2.8797836303710938,
+      "cluster_active": true,
+      "train": {
+        "silhouette": -0.011842944659292698,
+        "ari": 0.03545236853091138,
+        "nmi": 0.11706432598065494
+      },
+      "val": {
+        "silhouette": -0.06536494940519333,
+        "ari": 0.03458480919004224,
+        "nmi": 0.1389589722504979
+      },
+      "test": {
+        "silhouette": -0.018009288236498833,
+        "ari": 0.02808613150611834,
+        "nmi": 0.12001480374536033
+      }
+    },
+    {
+      "epoch": 16,
+      "loss": 9388044.0,
+      "recon_loss": 9388044.0,
+      "recon_loss_weighted": 9388044.0,
+      "cluster_loss": 0.013819815590977669,
+      "cluster_loss_weighted": 0.002763963071629405,
+      "cluster_entropy": 2.879148006439209,
+      "cluster_active": true
+    },
+    {
+      "epoch": 17,
+      "loss": 8796768.0,
+      "recon_loss": 8796768.0,
+      "recon_loss_weighted": 8796768.0,
+      "cluster_loss": 0.012653223238885403,
+      "cluster_loss_weighted": 0.0025306446477770805,
+      "cluster_entropy": 2.8781051635742188,
+      "cluster_active": true
+    },
+    {
+      "epoch": 18,
+      "loss": 8285179.0,
+      "recon_loss": 8285179.0,
+      "recon_loss_weighted": 8285179.0,
+      "cluster_loss": 0.010354519821703434,
+      "cluster_loss_weighted": 0.0020709040109068155,
+      "cluster_entropy": 2.880504608154297,
+      "cluster_active": true
+    },
+    {
+      "epoch": 19,
+      "loss": 7872277.5,
+      "recon_loss": 7872277.5,
+      "recon_loss_weighted": 7872277.5,
+      "cluster_loss": 0.010586565360426903,
+      "cluster_loss_weighted": 0.0021173132117837667,
+      "cluster_entropy": 2.8786697387695312,
+      "cluster_active": true
+    },
+    {
+      "epoch": 20,
+      "loss": 7308617.0,
+      "recon_loss": 7308617.0,
+      "recon_loss_weighted": 7308617.0,
+      "cluster_loss": 0.00884277280420065,
+      "cluster_loss_weighted": 0.0017685545608401299,
+      "cluster_entropy": 2.8771605491638184,
+      "cluster_active": true,
+      "train": {
+        "silhouette": 0.0503070093691349,
+        "ari": 0.01177630723648022,
+        "nmi": 0.06064619590063108
+      },
+      "val": {
+        "silhouette": 0.02651866525411606,
+        "ari": 0.006506516789112431,
+        "nmi": 0.06228252604013
+      },
+      "test": {
+        "silhouette": 0.00823158584535122,
+        "ari": 0.013422754407052944,
+        "nmi": 0.07190616869103361
+      }
+    }
+  ],
+  "best": {
+    "epoch": 5,
+    "loss": 37920844.0,
+    "recon_loss": 37920844.0,
+    "recon_loss_weighted": 37920844.0,
+    "cluster_loss": 0.0,
+    "cluster_loss_weighted": 0.0,
+    "cluster_entropy": 2.944438934326172,
+    "cluster_active": false,
+    "train": {
+      "silhouette": 0.20426012575626373,
+      "ari": 0.2467569784456868,
+      "nmi": 0.5034659478459236
+    },
+    "val": {
+      "silhouette": 0.21182316541671753,
+      "ari": 0.24912609315374598,
+      "nmi": 0.5329266317209513
+    },
+    "test": {
+      "silhouette": 0.1890595704317093,
+      "ari": 0.22281903197084363,
+      "nmi": 0.5159728308196283
+    }
+  },
+  "best_epoch": 5
+}

@@ -29,7 +29,12 @@ python3 download_pbmc3k.py
 ```
 python3 simlr/SIMLR_visualize.py
 ```
+Figures are found in simlr/figures.
 
 4.2. DESC visualization:
+```
+python3 desc/train_desc.py --config desc/config.yaml
+```
+Figures are found in desc/outputs. To modify the input data, change the file path in desc/config.yaml (e.g. data/paul15.h5ad --> data/pbmc3k.h5ad)
 
 4.3. scGNN visualization:

@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from sklearn.cluster import KMeans
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score
 
-from data.scgnn_dataset import load_scgnn_data
+from scgnn_dataset import load_scgnn_data
 from models.scgnn import ScGNN
 from pipeline_utils import load_config, resolve_path
 

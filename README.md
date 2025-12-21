@@ -37,4 +37,29 @@ python3 desc/train_desc.py --config desc/config.yaml
 ```
 Figures are found in desc/outputs. To modify the input data, change the file path in desc/config.yaml (e.g. data/paul15.h5ad --> data/pbmc3k.h5ad)
 
-4.3. scGNN visualization:
+4.3. scGNN visualization (run pipeline first):
+
+Run the scGNN pipeline to generate artifacts/results (paul15 example):
+```
+python3 scgnn/preprocess.py --config configs/paul15.yaml
+python3 scgnn/build_graph.py --config configs/paul15.yaml
+python3 scgnn/split_data.py --config configs/paul15.yaml
+python3 scgnn/train_scgnn.py --config configs/scgnn_paul15.yaml
+```
+
+Embeddings plot:
+```
+python3 scgnn/plot_embeddings.py --config configs/scgnn_paul15.yaml --results_dir results/paul15_scgnn_v2 --output_path reports/paul15_umap.png --method umap --labels both
+```
+
+Training loss plot:
+```
+python3 scgnn/plot_training_loss.py --metrics_path results/paul15_scgnn_v2/metrics.json --output_path reports/paul15_loss.png
+```
+
+Clustering metrics plot:
+```
+python3 scgnn/plot_clustering_metrics.py --metrics_path results/paul15_scgnn_v2/metrics.json --output_path reports/paul15_cluster_metrics.png
+```
+
+Note: If you `cd scgnn`, drop the `scgnn/` prefix in the script paths.

@@ -64,7 +64,16 @@ def _load_paul15_h5(path, dataset_cfg: Dict) -> sc.AnnData:
 
 
 def apply_qc_filters(adata: sc.AnnData, qc_cfg: Dict) -> sc.AnnData:
-    sc.pp.calculate_qc_metrics(adata, inplace=True)
+    if "total_counts" not in adata.obs or "n_genes_by_counts" not in adata.obs:
+        matrix = adata.X
+        if sp.issparse(matrix):
+            total_counts = np.asarray(matrix.sum(axis=1)).ravel()
+            n_genes = np.asarray(matrix.getnnz(axis=1)).ravel()
+        else:
+            total_counts = np.asarray(matrix.sum(axis=1)).ravel()
+            n_genes = np.asarray((matrix > 0).sum(axis=1)).ravel()
+        adata.obs["total_counts"] = total_counts
+        adata.obs["n_genes_by_counts"] = n_genes
     mask = np.ones(adata.n_obs, dtype=bool)
     if qc_cfg.get("min_counts_per_cell") is not None:
         mask &= adata.obs["total_counts"] >= qc_cfg["min_counts_per_cell"]
@@ -117,9 +126,12 @@ def main():
     adata = apply_qc_filters(adata, qc_cfg)
 
     norm_cfg = cfg["preprocessing"].get("normalize", {})
-    target_sum = norm_cfg.get("target_sum", 1e4)
-    logging.info("Normalizing counts to target_sum=%s", target_sum)
-    sc.pp.normalize_total(adata, target_sum=target_sum)
+    if norm_cfg.get("enabled", True):
+        target_sum = norm_cfg.get("target_sum", 1e4)
+        logging.info("Normalizing counts to target_sum=%s", target_sum)
+        sc.pp.normalize_total(adata, target_sum=target_sum)
+    else:
+        logging.info("Skipping normalization step per config")
 
     if cfg["preprocessing"].get("log1p", True):
         logging.info("Applying log1p transform")

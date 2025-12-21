@@ -1,6 +1,6 @@
 dataset:
   name: pbmc3k
-  raw_path: data/pbmc3k_raw.h5ad
+  raw_path: ../data/pbmc3k.h5ad
   raw_format: h5ad
   batch_obs_key: batch
   pseudo_label_obs_key: cell_type
@@ -16,13 +16,14 @@ artifacts:
     meta_path: artifacts-pbmc/graphs/pbmc3k_graph_meta.json
 preprocessing:
   qc:
-    min_counts_per_cell: 500
-    max_counts_per_cell: 25000
-    min_genes_per_cell: 200
-    max_genes_per_cell: 6000
+    min_counts_per_cell: null
+    max_counts_per_cell: null
+    min_genes_per_cell: null
+    max_genes_per_cell: null
   normalize:
+    enabled: false
     target_sum: 10000
-  log1p: true
+  log1p: false
   hvg:
     n_top_genes: 2000
     flavor: seurat
@@ -38,6 +39,7 @@ graph:
   neighbors:
     n_neighbors: 15
     metric: euclidean
+    method: gauss
 splits:
   train_fraction: 0.7
   val_fraction: 0.15

@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 
-from data.scgnn_dataset import load_scgnn_data
+from scgnn_dataset import load_scgnn_data
 from pipeline_utils import load_config, resolve_path
 
 

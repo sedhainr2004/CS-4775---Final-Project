@@ -63,3 +63,4 @@ python3 scgnn/plot_clustering_metrics.py --metrics_path results/paul15_scgnn_v2/
 ```
 
 Note: If you `cd scgnn`, drop the `scgnn/` prefix in the script paths.
+You'll find the plots under scgnn/results/

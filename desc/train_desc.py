@@ -12,7 +12,6 @@ def set_seeds(seed=42):
 def prepare_data(cfg):
     adata = sc.read_h5ad(cfg['dataset_path'])
 
-    # ---- Force dense float32 matrix ----
     if hasattr(adata.X, "toarray"):
         X = adata.X.toarray()
     else:
@@ -40,7 +39,6 @@ def prepare_data(cfg):
     X = X.astype(np.float32)
     X[np.isnan(X)] = 0
 
-    # ---- MANUAL NORMALIZATION (bypass Scanpy) ----
     # Total-count normalize to target_sum
     counts = X.sum(axis=1, keepdims=True)
     counts[counts == 0] = 1.0  # avoid divide-by-zero
@@ -52,7 +50,7 @@ def prepare_data(cfg):
     # ---- Save back ----
     adata.X = X
 
-    # ---- HVGs (we can keep Scanpy here; it only uses numpy ops) ----
+    # ---- HVGs ----
     sc.pp.highly_variable_genes(adata, n_top_genes=cfg['n_hvgs'], subset=True, flavor="seurat_v3")
 
     # ---- Extract final numeric matrix ----

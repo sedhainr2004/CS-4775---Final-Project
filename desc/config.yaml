@@ -1,6 +1,6 @@
 # Minimal config for DESC reimplementation
 dataset_path: data/paul15.h5ad
-output_dir: outputs/paul15_desc
+output_dir: desc/outputs/paul15_desc
 random_seed: 42
 
 # Preprocessing
